@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <curl/curl.h>
-#BUFOUT 5000
+#define BUFOUT 5000
 
 int newout=1;
 static size_t write_cb2(void *ptr,size_t size,size_t nmemb,void *userdata){
