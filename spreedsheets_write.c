@@ -14,8 +14,9 @@ int main(int argc,char *argv[]){
   access_token[strcspn(access_token,"\n")]='\0';
 
   sprintf(auth_header,"Authorization: Bearer %s",access_token);
+  headers=curl_slist_append(headers,"Content-Type: application/json");
   headers=curl_slist_append(headers,auth_header);
-  sprintf(url,"https://sheets.googleapis.com/v4/spreadsheets/%s/values/%s",argv[1],argv[2]);
+  sprintf(url,"https://sheets.googleapis.com/v4/spreadsheets/%s/values:batchUpdate",argv[1]);
   curl=curl_easy_init();
   if(!curl)return 0;
   curl_easy_setopt(curl,CURLOPT_URL,url);
