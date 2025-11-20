@@ -22,7 +22,6 @@ int main(){
   curl_easy_setopt(curl,CURLOPT_POSTFIELDS,post);
   res=curl_easy_perform(curl);
   if(res!=CURLE_OK)return 0;
-  printf("%s\n",out);
   curl_easy_cleanup(curl);
   return 1;
 }
