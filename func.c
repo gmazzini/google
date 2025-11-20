@@ -34,3 +34,22 @@ char *myencode(char *pstr){
   *penc='\0';
   return enc;
 }
+
+char *mime(char *filename){
+  char *ext;
+  ext=strrchr(filename,'.');
+  if(!ext || ext==filename)return "application/octet-stream";
+  ext++;
+  if(strcasecmp(ext,"pdf")==0)return "application/pdf";
+  if(strcasecmp(ext,"png")==0)return "image/png";
+  if(strcasecmp(ext,"jpg")==0 || strcasecmp(ext,"jpeg")==0)return "image/jpeg";
+  if(strcasecmp(ext,"gif")==0)return "image/gif";
+  if(strcasecmp(ext,"txt")==0)return "text/plain";
+  if(strcasecmp(ext,"html")==0 || strcasecmp(ext,"htm")==0)return "text/html";
+  if(strcasecmp(ext,"csv")==0)return "text/csv";
+  if(strcasecmp(ext,"docx")==0)return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if(strcasecmp(ext,"xlsx")==0)return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if(strcasecmp(ext,"pptx")==0)return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  if(strcasecmp(ext,"zip")==0)return "application/zip";
+  return "application/octet-stream";
+}
