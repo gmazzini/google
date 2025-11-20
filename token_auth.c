@@ -14,6 +14,7 @@ int main(){
   }
   *p1++='\0';
   p2=strstr(in,"code=");
+  if(p2==NULL)return 0;
   p2+=5;
   p1=p2;
   while(*p1!='\0' && *p1!='&' && *p1!='\n')p1++;
