@@ -11,8 +11,10 @@ int main(){
   if(!fp)return 0;
   if(!fgets(refresh_token,512,fp)){fclose(fp); return 0;}
   fclose(fp);
-  
   refresh_token[strcspn(refresh_token,"\n")]='\0';
+
+printf("%s\n",refresh_token);
+  
   sprintf(post,"client_id=%s&client_secret=%s&refresh_token=%s&grant_type=refresh_token",client_id,client_secret,refresh_token);
   curl=curl_easy_init();
   if(!curl)return 0;
@@ -25,6 +27,8 @@ int main(){
   res=curl_easy_perform(curl);
   if(res!=CURLE_OK)return 0;
 
+printf("%s\n",out);
+  
   strcpy(tok,"\"access_token\": \"");
   p1=strstr(out,tok);
   if(p1==NULL)return 0;
