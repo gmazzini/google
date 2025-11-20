@@ -1,10 +1,11 @@
 #include "func.c"
 
 int main(){
-  char refresh_token[512],access_token[512],post[100],*out;
+  char refresh_token[512],access_token[512],post[100],*out,*p1,*p2;
   FILE *fp;
   CURL *curl;
   CURLcode res;
+  int c;
   
   fp=fopen("/home/www/data/google_refresh_token","r");
   if(!fp)return 0;
