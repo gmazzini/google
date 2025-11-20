@@ -18,6 +18,7 @@ int main(int argc,char *argv[]){
   if(fp==NULL)return 0;
   fseek(fp,0,SEEK_END);
   fs=ftell(fp);
+  fseek(fp,0,SEEK_SET); 
   buf=(char *)malloc(fs*sizeof(char));
   if(buf==NULL){fclose(fp); return 0;}
   fread(buf,1,fs,fp);
