@@ -1,7 +1,7 @@
 #include "func.c"
 
 int main(){
-  char refresh_token[512],access_token[512],post[100],tok[30],*out,*p1,*p2;
+  char refresh_token[512],*access_token,post[100],tok[30],*out,*p1,*p2;
   FILE *fp;
   CURL *curl;
   CURLcode res;
