@@ -2,10 +2,10 @@
 
 int main(int argc,char *argv[]){
   FILE *fp;
-  char *buf,access_token[512];
+  char *buf,access_token[512],*out;
   long fs;
   CURL *curl;
-  CURLcode res
+  CURLcode res;
   struct curl_slist *headers=NULL;
 
   fp=fopen("/home/www/data/google_access_token","r");
