@@ -14,7 +14,7 @@ int main(int argc,char argv[]){
   access_token[strcspn(access_token,"\n")]='\0';
 
   sprintf(auth_header,"Authorization: Bearer %s",access_token);
-  headers=curl_slist_append(headers,auth);
+  headers=curl_slist_append(headers,auth_header);
   sprintf(url,"https://sheets.googleapis.com/v4/spreadsheets/%s/values/&s",argv[1],argv[2]);
   curl=curl_easy_init();
   if(!curl)return 0;
