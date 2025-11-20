@@ -2,11 +2,11 @@
 
 int main(int argc,char *argv[]){
   FILE *fp;
-  char *buf,access_token[512],auth_header[512],*out;
+  char *buf,access_token[512],auth_header[512],url[512],*out,*p1,*p2,*id;
   long fs;
   CURL *curl;
   CURLcode res;
-  struct curl_slist *headers=NULL;
+  struct curl_slist *headers;
 
   fp=fopen("/home/www/data/google_access_token","r");
   if(!fp)return 0;
@@ -23,6 +23,7 @@ int main(int argc,char *argv[]){
   fread(buf,1,fs,fp);
   fclose(fp);
 
+  headers=NULL;
   sprintf(auth_header,"Authorization: Bearer %s",access_token);
   headers=curl_slist_append(headers,auth_header);
   curl=curl_easy_init();
@@ -39,23 +40,37 @@ int main(int argc,char *argv[]){
   printf("%s\n",out);
   curl_slist_free_all(headers);
   curl_easy_cleanup(curl);
+
+  strcpy(tok,"\"id\": \"");
+  p1=strstr(out,tok);
+  if(p1==NULL)return 0;
+  id=p1+strlen(tok);
+  p2=strstr(access_token,"\"");
+  if(p2==NULL)return 0;
+  *p2='\0';
+
+  headers=NULL;
+  sprintf(auth_header,"Authorization: Bearer %s",access_token);
+  sprintf(buf,"{ \"name\": \"pippo\" }");
+  headers=curl_slist_append(headers,"Content-Type: application/json");
+  headers=curl_slist_append(headers,auth_header);
+  curl=curl_easy_init();
+  if(!curl)return 0;
+  sprintf(url,"https://www.googleapis.com/drive/v3/files/%s?addParents=%s",id,argv[2]);
+  curl_easy_setopt(curl,CURLOPT_URL,url);
+  curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,write_cb2);
+  curl_easy_setopt(curl,CURLOPT_WRITEDATA,&out);
+  curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
+  curl_easy_setopt(curl,CURLOPT_CUSTOMREQUEST,"PATCH");
+  curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headers);
+  curl_easy_setopt(curl,CURLOPT_POST,1L);
+  curl_easy_setopt(curl,CURLOPT_POSTFIELDS,buf);
+  res=curl_easy_perform(curl);
+  if(res!=CURLE_OK)return 0;
+  printf("%s\n",out);
+  curl_slist_free_all(headers);
+  curl_easy_cleanup(curl); 
+  
   return 1;
   
 }
-
-
-/*
-$file_id=$oo["id"];
-$ch=curl_init();
-curl_setopt($ch,CURLOPT_URL,"https://www.googleapis.com/drive/v3/files/$file_id?addParents=1wpSVpIUKsd_H2Mnzh51kgQf3EkKOKFLF");
-curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-curl_setopt($ch,CURLOPT_POST,1);
-curl_setopt($ch,CURLOPT_SSL_VERIFYPEER,FALSE);
-curl_setopt($ch,CURLOPT_HTTPHEADER,array("Content-Type: application/json","Authorization: Bearer ".$access_token));
-curl_setopt($ch,CURLOPT_CUSTOMREQUEST,"PATCH");
-curl_setopt($ch,CURLOPT_POSTFIELDS,'{"name": "'.$ff.'.csv"}');
-echo curl_exec($ch);
-echo "\n";
-curl_close($ch);
-
-*/
