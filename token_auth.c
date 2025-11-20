@@ -1,18 +1,14 @@
 #include "func.c"
 
 int main(){
-  char in[512],*p1,*p2,url[512],post[512],*out;
+  char *in,*p1,*p2,url[512],post[512],*out;
   CURL *curl;
   CURLcode res;
   int c;
 
   printf("Content-Type: text/plain\r\n\r\n");
-  for(p1=in;;){
-    c=getchar();
-    if(c==EOF)break;
-    *p1++=c;
-  }
-  *p1++='\0';
+  if(strcmp(getenv("REQUEST_METHOD"),"GET")!=0)return 0;
+  in=getenv("QUERY_STRING");
   p2=strstr(in,"code=");
   if(p2==NULL)return 0;
   p2+=5;
@@ -22,7 +18,8 @@ int main(){
   FILE *fp2; fp2=fopen("/home/www/google/q2.txt","w");
   fprintf(fp2,"%s\n%s\n",in,p2);
   fclose(fp2);
-  
+
+  return 1;
   sprintf(post,"client_id=%s&redirect_uri=%s&client_secret=%s&code=%s&access_type=offline&grant_type=authorization_code",client_id,redirect_uri,client_secret,p2);
   sprintf(url,"https://oauth2.googleapis.com/token");
   curl=curl_easy_init();
