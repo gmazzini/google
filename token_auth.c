@@ -4,7 +4,6 @@ int main(){
   char *in,*p1,*p2,url[512],post[512],*out;
   CURL *curl;
   CURLcode res;
-  int c;
 
   printf("Content-Type: text/plain\r\n\r\n");
   if(strcmp(getenv("REQUEST_METHOD"),"GET")!=0)return 0;
