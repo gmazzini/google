@@ -12,7 +12,6 @@ int main(){
   fclose(fp);
   access_token[strcspn(access_token,"\n")]='\0';
   sprintf(url,"https://oauth2.googleapis.com/tokeninfo?access_token=%s",access_token);
-  curl_global_init(CURL_GLOBAL_DEFAULT);
   curl=curl_easy_init();
   if(!curl)return 0;
   curl_easy_setopt(curl,CURLOPT_URL,url);
@@ -23,6 +22,5 @@ int main(){
   if(res!=CURLE_OK)return 0;
   printf("%s\n",out);
   curl_easy_cleanup(curl);
-  curl_global_cleanup();
   return 1;
 }
