@@ -49,6 +49,8 @@ int main(int argc,char *argv[]){
   if(p2==NULL)return 0;
   *p2='\0';
 
+printf("---%s\n",id);
+  
   headers=NULL;
   sprintf(auth_header,"Authorization: Bearer %s",access_token);
   sprintf(buf,"{ \"name\": \"pippo\" }");
