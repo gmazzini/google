@@ -6,6 +6,7 @@ int main(){
   CURLcode res;
   int c;
 
+  printf("Content-Type: text/plain\r\n\r\n");
   for(p1=in;;){
     c=getchar();
     if(c==EOF)break;
