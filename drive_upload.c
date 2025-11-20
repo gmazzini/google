@@ -38,6 +38,7 @@ int main(int argc,char *argv[]){
   curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headers);
   curl_easy_setopt(curl,CURLOPT_POST,1L);
   curl_easy_setopt(curl,CURLOPT_POSTFIELDS,buf);
+  curl_easy_setopt(curl,CURLOPT_POSTFIELDSIZE,fs);
   res=curl_easy_perform(curl);
   if(res!=CURLE_OK)return 0;
   printf("%s\n",out);
