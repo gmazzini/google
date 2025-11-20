@@ -16,7 +16,7 @@ int main(){
   p2=strstr(in,"code=");
   p2+=5;
   p1=p2;
-  while(*p1 && *p1 != '&')p1++;
+  while(*p1 && *p1!='&' && *p1!='\n')p1++;
   p1='\0';
   FILE *fp2; fp2=fopen("/home/www/google/q2.txt","w");
   fprintf(fp2,"%s\n%s\n",in,p2);
