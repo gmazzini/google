@@ -28,7 +28,7 @@ int main(){
   CURL *curl;
   CURLcode res;
   
-  fp=fopen("/home/www/data/access_token_google","r");
+  fp=fopen("/home/www/data/google_access_token","r");
   if(!fp)return 0;
   if(!fgets(access_token,512,fp)){fclose(fp); return 0;}
   fclose(fp);
