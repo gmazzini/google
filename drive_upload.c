@@ -1,3 +1,21 @@
+#include "func.c"
+
+int main(int argc,char *argv[]){
+  FILE *fp;
+  char *buf;
+  long fs;
+
+  fp=fopen(argv[1],"rb");
+  if(fp==NULL)return 0;
+  fseek(fp,0,SEEK_END);
+  fs=ftell(fp);
+  buf=(char *)malloc();
+}
+
+
+
+
+
 <?php
 $ff=$argv[1];
 if($ff==0)$ff=(int)(time()/86400);
