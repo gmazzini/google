@@ -29,13 +29,6 @@ int main(){
   res=curl_easy_perform(curl);
   if(res!=CURLE_OK)return 0;
 
-
- fp=fopen("/home/www/data/q1","w");
-  if(fp==NULL){curl_easy_cleanup(curl); return 0;}
-  fprintf(fp,"%s\n",out);
-  fclose(fp);
-
-  
   strcpy(tok,"\"access_token\": \"");
   p1=strstr(out,tok);
   if(p1==NULL)return 0;
@@ -53,7 +46,7 @@ int main(){
   p1=strstr(out,tok);
   if(p1==NULL)return 0;
   refresh_token=p1+strlen(tok);
-  p2=strstr(access_token,"\"");
+  p2=strstr(refresh_token,"\"");
   if(p2==NULL)return 0;
   c=*p2; *p2='\0';
   fp=fopen("/home/www/data/google_refresh_token","w");
