@@ -26,8 +26,9 @@ int main(int argc,char *argv[]){
 
   headers=NULL;
   newout=1;
+  sprintf(auth_header,"Content-Type: %s",mime(argv[3]));
+  headers=curl_slist_append(headers,auth_header);
   sprintf(auth_header,"Authorization: Bearer %s",access_token);
-  headers=curl_slist_append(headers,"Content-Type: application/octet-stream");
   headers=curl_slist_append(headers,auth_header);
   curl=curl_easy_init();
   if(!curl)return 0;
