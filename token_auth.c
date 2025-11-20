@@ -18,7 +18,9 @@ int main(){
   curl_easy_setopt(ch,CURLOPT_POSTFIELDS,post);
   res=curl_easy_perform(curl);
   if(res!=CURLE_OK)return 0;
-  printf("%s\n",out);
+  FILE *fp; fp=fopwn("/home/www/google/q1.txt","w");
+  fprintf(fp,"%s\n",out);
+  fclose(fp);
   curl_easy_cleanup(curl);
   return 1;
 }
