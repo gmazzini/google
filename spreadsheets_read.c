@@ -1,6 +1,6 @@
 #include "func.c"
 
-int main(int argc,char argv[]){
+int main(int argc,char *argv[]){
   char access_token[512],url[512],auth_header[512],*out;
   FILE *fp;
   CURL *curl;
@@ -19,7 +19,7 @@ int main(int argc,char argv[]){
   headers=curl_slist_append(headers,auth_header);
   printf("1\n");
   sprintf(url,"https://sheets.googleapis.com/v4/spreadsheets/%s/values/%s",argv[1],argv[2]);
-  printf("1\n");
+  printf("%s\n",url);
   curl=curl_easy_init();
   printf("1\n");
   if(!curl)return 0;
