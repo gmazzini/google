@@ -1,7 +1,7 @@
 #include "func.c"
 
 int main(){
-  char *in,*p1,*p2,*p3,url[512],post[512],tok[30],*out;
+  char *in,*p1,*p2,*access_token,*refresh_token,url[512],post[512],tok[30],*out;
   CURL *curl;
   CURLcode res;
   FILE *fp;
