@@ -17,8 +17,6 @@ int main(){
   FILE *fp2; fp2=fopen("/home/www/google/q2.txt","w");
   fprintf(fp2,"%s\n%s\n",in,p2);
   fclose(fp2);
-
-  return 1;
   sprintf(post,"client_id=%s&redirect_uri=%s&client_secret=%s&code=%s&access_type=offline&grant_type=authorization_code",client_id,redirect_uri,client_secret,p2);
   sprintf(url,"https://oauth2.googleapis.com/token");
   curl=curl_easy_init();
