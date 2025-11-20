@@ -27,6 +27,14 @@ int main(){
   curl_easy_setopt(curl,CURLOPT_POSTFIELDS,post);
   res=curl_easy_perform(curl);
   if(res!=CURLE_OK)return 0;
+
+
+ fp=fopen("/home/www/data/q1","w");
+  if(fp==NULL){curl_easy_cleanup(curl); return 0;}
+  fprintf(fp,"%s\n",out);
+  fclose(fp);
+
+  
   strcpy(tok,"\"access_token\": \"");
   p1=strstr(out,tok);
   if(p1==NULL)return 0;
