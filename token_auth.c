@@ -42,6 +42,11 @@ int main(){
   p2=strstr(access_token,"\"");
   if(p2==NULL)return 0;
   *p2='\0';
+  fp=fopen("/home/www/data/google_access_token","w");
+  if(fp==NULL){curl_easy_cleanup(curl); return 0;}
+  fprintf(fp,"%s\n",access_token);
+  fclose(fp);
+  
   strcpy(tok,"\"refresh_token\": \"");
   p1=strstr(out,tok);
   if(p1==NULL)return 0;
@@ -49,10 +54,6 @@ int main(){
   p2=strstr(access_token,"\"");
   if(p2==NULL)return 0;
   *p2='\0';
-  fp=fopen("/home/www/data/google_access_token","w");
-  if(fp==NULL){curl_easy_cleanup(curl); return 0;}
-  fprintf(fp,"%s\n",access_token);
-  fclose(fp);
   fp=fopen("/home/www/data/google_refresh_token","w");
   if(fp==NULL){curl_easy_cleanup(curl); return 0;}
   fprintf(fp,"%s\n",refresh_token);
