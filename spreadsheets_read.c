@@ -17,6 +17,7 @@ int main(int argc,char argv[]){
   headers=curl_slist_append(headers,auth_header);
   sprintf(url,"https://sheets.googleapis.com/v4/spreadsheets/%s/values/&s",argv[1],argv[2]);
   curl=curl_easy_init();
+  printf("1\n");
   if(!curl)return 0;
   curl_easy_setopt(curl,CURLOPT_URL,url);
   curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,write_cb2);
