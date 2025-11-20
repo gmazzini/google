@@ -31,7 +31,7 @@ int main(int argc,char *argv[]){
   headers=curl_slist_append(headers,auth_header);
   curl=curl_easy_init();
   if(!curl)return 0;
-  curl_easy_setopt(curl,CURLOPT_URL,"https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart");
+  curl_easy_setopt(curl,CURLOPT_URL,"https://www.googleapis.com/upload/drive/v3/files?uploadType=media");
   curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,write_cb2);
   curl_easy_setopt(curl,CURLOPT_WRITEDATA,&out);
   curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
