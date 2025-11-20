@@ -2,7 +2,7 @@
 
 int main(int argc,char *argv[]){
   FILE *fp;
-  char *buf,access_token[512],*out;
+  char *buf,access_token[512],auth_header[512],*out;
   long fs;
   CURL *curl;
   CURLcode res;
