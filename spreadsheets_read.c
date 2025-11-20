@@ -13,15 +13,10 @@ int main(int argc,char *argv[]){
   fclose(fp);
   access_token[strcspn(access_token,"\n")]='\0';
 
-  printf("1\n");
   sprintf(auth_header,"Authorization: Bearer %s",access_token);
-  printf("1\n");
   headers=curl_slist_append(headers,auth_header);
-  printf("1\n");
   sprintf(url,"https://sheets.googleapis.com/v4/spreadsheets/%s/values/%s",argv[1],argv[2]);
-  printf("%s\n",url);
   curl=curl_easy_init();
-  printf("1\n");
   if(!curl)return 0;
   curl_easy_setopt(curl,CURLOPT_URL,url);
   curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,write_cb2);
