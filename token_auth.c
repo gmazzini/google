@@ -1,9 +1,18 @@
 #include "func.c"
 
 int main(){
-  char access_token[512],url[512],post[512],*out;
+  char in[512],*p1,url[512],post[512],*out;
   CURL *curl;
   CURLcode res;
+
+  for(p1=in;;){
+    c=getchar();
+    if(c==EOF)break;
+    *p1++=c;
+  }
+  *p1++='\0';
+
+
   
   sprintf(post,"client_id=%s&redirect_uri=%s&client_secret=%s&code=%s&access_type=offline&grant_type=authorization_code",client_id,redirect_uri,client_secret,BHO);
   sprintf(url,"https://oauth2.googleapis.com/token");
