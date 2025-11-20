@@ -24,6 +24,7 @@ int main(int argc,char *argv[]){
   fclose(fp);
 
   headers=NULL;
+  newout=1;
   sprintf(auth_header,"Authorization: Bearer %s",access_token);
   headers=curl_slist_append(headers,auth_header);
   curl=curl_easy_init();
@@ -50,6 +51,7 @@ int main(int argc,char *argv[]){
   *p2='\0';
   
   headers=NULL;
+  newout=1;
   sprintf(auth_header,"Authorization: Bearer %s",access_token);
   sprintf(buf,"{ \"name\": \"%s\" }",argv[3]);
   headers=curl_slist_append(headers,"Content-Type: application/json");
