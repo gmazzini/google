@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <curl/curl.h>
-#include "/home/www/data/google_set.def";
+#include "/home/www/data/google_set.def"
 #define BUFOUT 5000
 
 int newout=1;
