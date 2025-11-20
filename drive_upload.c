@@ -48,12 +48,10 @@ int main(int argc,char *argv[]){
   p2=strstr(id,"\"");
   if(p2==NULL)return 0;
   *p2='\0';
-
-printf("---%s\n",id);
   
   headers=NULL;
   sprintf(auth_header,"Authorization: Bearer %s",access_token);
-  sprintf(buf,"{ \"name\": \"pippo\" }");
+  sprintf(buf,"{ \"name\": \"%s\" }",argv[3]);
   headers=curl_slist_append(headers,"Content-Type: application/json");
   headers=curl_slist_append(headers,auth_header);
   curl=curl_easy_init();
