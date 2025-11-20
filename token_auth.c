@@ -1,7 +1,7 @@
 #include "func.c"
 
 int main(){
-  char in[512],*p1,url[512],post[512],*out;
+  char in[512],*p1,*p2,url[512],post[512],*out;
   CURL *curl;
   CURLcode res;
 
@@ -11,8 +11,14 @@ int main(){
     *p1++=c;
   }
   *p1++='\0';
-
-
+  p2=strstr(in,"code=");
+  p2+=5;
+  p1=p2;
+  while(*p1 && *p1 != '&')p1++;
+  p1='\0';
+  FILE *fp2; fp2=fopen("/home/www/google/q2.txt","w");
+  fprintf(fp2,"%s\n%s\n",in,p2);
+  fclose(fp2);
   
   sprintf(post,"client_id=%s&redirect_uri=%s&client_secret=%s&code=%s&access_type=offline&grant_type=authorization_code",client_id,redirect_uri,client_secret,BHO);
   sprintf(url,"https://oauth2.googleapis.com/token");
