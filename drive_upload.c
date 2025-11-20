@@ -45,7 +45,7 @@ int main(int argc,char *argv[]){
   p1=strstr(out,tok);
   if(p1==NULL)return 0;
   id=p1+strlen(tok);
-  p2=strstr(access_token,"\"");
+  p2=strstr(id,"\"");
   if(p2==NULL)return 0;
   *p2='\0';
 
