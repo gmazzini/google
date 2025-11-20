@@ -12,10 +12,8 @@ int main(){
   if(!fgets(refresh_token,512,fp)){fclose(fp); return 0;}
   fclose(fp);
   refresh_token[strcspn(refresh_token,"\n")]='\0';
-
-printf("%s\n",refresh_token);
   
-  sprintf(post,"client_id=%s&client_secret=%s&refresh_token=%s&grant_type=refresh_token",client_id,client_secret,refresh_token);
+  sprintf(post,"client_id=%s&client_secret=%s&refresh_token=%s&grant_type=refresh_token",curl_easy_escape(curl,client_id,0),curl_easy_escape(curl,client_secret,0),curl_easy_escape(curl,refresh_token,0));
   curl=curl_easy_init();
   if(!curl)return 0;
   curl_easy_setopt(curl,CURLOPT_URL,"https://oauth2.googleapis.com/token");
