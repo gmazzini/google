@@ -1,7 +1,7 @@
 #include "func.c"
 
 int main(int argc,char *argv[]){
-  char access_token[512],url[512],auth_header[512],*out;
+  char access_token[512],url[512],auth_header[512],*out,post[2000];
   FILE *fp;
   CURL *curl;
   CURLcode res;
@@ -13,6 +13,7 @@ int main(int argc,char *argv[]){
   fclose(fp);
   access_token[strcspn(access_token,"\n")]='\0';
 
+  sprintf(post,"{ \"valueInputOption\": \"RAW\", \"data\": [{ \"range\": \"%s\", \"majorDimension\": \"%s\", \"values\": [[ %s ]] }] }",argv[2],argv[3],argv[4]);
   sprintf(auth_header,"Authorization: Bearer %s",access_token);
   headers=curl_slist_append(headers,"Content-Type: application/json");
   headers=curl_slist_append(headers,auth_header);
@@ -24,6 +25,8 @@ int main(int argc,char *argv[]){
   curl_easy_setopt(curl,CURLOPT_WRITEDATA,&out);
   curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER,headers);
+  curl_easy_setopt(curl,CURLOPT_POST,1L);
+  curl_easy_setopt(curl,CURLOPT_POSTFIELDS,post);
   res=curl_easy_perform(curl);
   if(res!=CURLE_OK)return 0;
   printf("%s\n",out);
