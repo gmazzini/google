@@ -5,6 +5,7 @@ int main(){
   CURL *curl;
   CURLcode res;
   FILE *fp;
+  int c;
 
   printf("Content-Type: text/plain\r\n\r\n");
   if(strcmp(getenv("REQUEST_METHOD"),"GET")!=0)return 0;
@@ -41,11 +42,12 @@ int main(){
   access_token=p1+strlen(tok);
   p2=strstr(access_token,"\"");
   if(p2==NULL)return 0;
-  *p2='\0';
+  c=*p2; *p2='\0';
   fp=fopen("/home/www/data/google_access_token","w");
   if(fp==NULL){curl_easy_cleanup(curl); return 0;}
   fprintf(fp,"%s\n",access_token);
   fclose(fp);
+  *p2=c;
   
   strcpy(tok,"\"refresh_token\": \"");
   p1=strstr(out,tok);
@@ -53,11 +55,13 @@ int main(){
   refresh_token=p1+strlen(tok);
   p2=strstr(access_token,"\"");
   if(p2==NULL)return 0;
-  *p2='\0';
+  c=*p2; *p2='\0';
   fp=fopen("/home/www/data/google_refresh_token","w");
   if(fp==NULL){curl_easy_cleanup(curl); return 0;}
   fprintf(fp,"%s\n",refresh_token);
   fclose(fp);
+  *p2=c;
+  
   curl_easy_cleanup(curl);
   return 1;
 }
