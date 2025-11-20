@@ -24,7 +24,7 @@ int main(int argc,char *argv[]){
   curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,write_cb2);
   curl_easy_setopt(curl,CURLOPT_WRITEDATA,&out);
   curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER,headers);
+  curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headers);
   curl_easy_setopt(curl,CURLOPT_POST,1L);
   curl_easy_setopt(curl,CURLOPT_POSTFIELDS,post);
   res=curl_easy_perform(curl);
