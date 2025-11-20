@@ -14,11 +14,11 @@ int main(){
   curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,write_cb2);
   curl_easy_setopt(curl,CURLOPT_WRITEDATA,&out);
   curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
-  curl_easy_setopt(ch,CURLOPT_POST,1L);
-  curl_easy_setopt(ch,CURLOPT_POSTFIELDS,post);
+  curl_easy_setopt(curl,CURLOPT_POST,1L);
+  curl_easy_setopt(curl,CURLOPT_POSTFIELDS,post);
   res=curl_easy_perform(curl);
   if(res!=CURLE_OK)return 0;
-  FILE *fp; fp=fopwn("/home/www/google/q1.txt","w");
+  FILE *fp; fp=fopen("/home/www/google/q1.txt","w");
   fprintf(fp,"%s\n",out);
   fclose(fp);
   curl_easy_cleanup(curl);
