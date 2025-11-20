@@ -4,6 +4,7 @@ int main(){
   char in[512],*p1,*p2,url[512],post[512],*out;
   CURL *curl;
   CURLcode res;
+  int c;
 
   for(p1=in;;){
     c=getchar();
@@ -20,7 +21,7 @@ int main(){
   fprintf(fp2,"%s\n%s\n",in,p2);
   fclose(fp2);
   
-  sprintf(post,"client_id=%s&redirect_uri=%s&client_secret=%s&code=%s&access_type=offline&grant_type=authorization_code",client_id,redirect_uri,client_secret,BHO);
+  sprintf(post,"client_id=%s&redirect_uri=%s&client_secret=%s&code=%s&access_type=offline&grant_type=authorization_code",client_id,redirect_uri,client_secret,p2);
   sprintf(url,"https://oauth2.googleapis.com/token");
   curl=curl_easy_init();
   if(!curl)return 0;
