@@ -2,7 +2,6 @@
 
 int main(){
   char access_token[512],url[512],post[512],*out;
-  FILE *fp;
   CURL *curl;
   CURLcode res;
   
