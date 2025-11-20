@@ -22,3 +22,15 @@ static size_t write_cb2(void *ptr,size_t size,size_t nmemb,void *userdata){
   *buffer=out;
   return realsize;
 }
+
+char *myencode(char *pstr){
+  static char enc[512];
+  char *penc=enc;
+  while(*pstr){
+    if((*pstr >= 'a' && *pstr <= 'z') || (*pstr >= 'A' && *pstr <= 'Z') || (*pstr >= '0' && *pstr <= '9') || *pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~')*penc++=*pstr;
+    else {sprintf(penc,"%%%02X",*pstr); penc += 3;}
+    pstr++;
+  }
+  *penc='\0';
+  return enc;
+}
