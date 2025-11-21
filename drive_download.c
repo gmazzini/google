@@ -67,6 +67,7 @@ int main(int argc,char *argv[]){
   fclose(fp);
   curl_slist_free_all(headers);
   curl_easy_cleanup(curl);
+  printf("File %s downloaded\n",argv[1]);
   
   return 1;
 }
