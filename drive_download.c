@@ -17,7 +17,7 @@ int main(int argc,char *argv[]){
   newout=1;
   sprintf(auth_header,"Authorization: Bearer %s",access_token);
   headers=curl_slist_append(headers,auth_header);
-  sprintf(query,"q=name='%s' and '%s' in parents&fields=files(id,name)",curl_easy_escape(curl,argv[1],0),curl_easy_escape(curl,argv[2],0));
+  sprintf(query,"q: name='%s' and '%s' in parents",curl_easy_escape(curl,argv[1],0),curl_easy_escape(curl,argv[2],0));
   sprintf(url,"https://www.googleapis.com/drive/v3/files?%s",myencode(query));
   curl=curl_easy_init();
   if(!curl)return 0;
@@ -26,15 +26,8 @@ int main(int argc,char *argv[]){
   curl_easy_setopt(curl,CURLOPT_WRITEDATA,&out);
   curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
   curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headers);
-// char errbuf[1000]; curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
-printf("1\n");
   res=curl_easy_perform(curl);
-
-  printf("2\n");
-  // printf("---%s\n%s\n",errbuf,url);
-
   if(res!=CURLE_OK)return 0;
-    printf("2\n");
   printf("%s\n",out);
   curl_slist_free_all(headers);
   curl_easy_cleanup(curl);
