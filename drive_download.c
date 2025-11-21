@@ -30,7 +30,6 @@ int main(int argc,char *argv[]){
   res=curl_easy_perform(curl);
   if(res!=CURLE_OK)return 0;
   printf("%s\n",out);
-
   strcpy(tok,"\"id\": \"");
   p0=out;
   for(i=0;;i++){
@@ -44,10 +43,30 @@ int main(int argc,char *argv[]){
   }
   if(i!=1)return 0;
   *p2='\0';
-
-printf("%s\n",id);
-  
+  printf("%s\n",id);
   curl_slist_free_all(headers);
   curl_easy_cleanup(curl);
+
+  headers=NULL;
+  newout=1;
+  sprintf(auth_header,"Authorization: Bearer %s",access_token);
+  headers=curl_slist_append(headers,auth_header);
+  sprintf(url,"https://www.googleapis.com/drive/v3/files/%s?alt=media",id);
+  curl=curl_easy_init();
+  if(!curl)return 0;
+  curl_easy_setopt(curl,CURLOPT_URL,url);
+  curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,write_cb2);
+  curl_easy_setopt(curl,CURLOPT_WRITEDATA,&out);
+  curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
+  curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headers);
+  res=curl_easy_perform(curl);
+  if(res!=CURLE_OK)return 0;
+  fp=fopen(argv[1],"wb");
+  if(fp==NULL)return 0;
+  fwrite(out,1,actpos,fp);
+  fclose(fp);
+  curl_slist_free_all(headers);
+  curl_easy_cleanup(curl);
+  
   return 1;
 }
