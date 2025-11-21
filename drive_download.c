@@ -29,6 +29,8 @@ int main(int argc,char *argv[]){
 // char errbuf[1000]; curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
 printf("1\n");
   res=curl_easy_perform(curl);
+
+  printf("2\n");
   // printf("---%s\n%s\n",errbuf,url);
 
   if(res!=CURLE_OK)return 0;
