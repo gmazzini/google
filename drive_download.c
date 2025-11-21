@@ -61,13 +61,13 @@ int main(int argc,char *argv[]){
   curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headers);
   res=curl_easy_perform(curl);
   if(res!=CURLE_OK)return 0;
-  fp=fopen(argv[1],"wb");
+  fp=fopen(argv[3],"wb");
   if(fp==NULL)return 0;
   fwrite(out,1,actpos,fp);
   fclose(fp);
   curl_slist_free_all(headers);
   curl_easy_cleanup(curl);
-  printf("File %s downloaded\n",argv[1]);
+  printf("File %s downloaded in %s\n",argv[1],argv[3]);
   
   return 1;
 }
