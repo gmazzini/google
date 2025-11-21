@@ -1,6 +1,6 @@
 #include "func.c"
 
-int main(){
+int main(int argc,char *argv[]){
   char access_token[512],url[512],auth_header[512],*out;
   FILE *fp;
   CURL *curl;
