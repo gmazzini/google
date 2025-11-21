@@ -1,7 +1,7 @@
 #include "func.c"
 
 int main(int argc,char *argv[]){
-  char access_token[512],url[512],auth_header[512],query[512],tok[30],*p1,*p2,*id,*out;
+  char access_token[512],url[512],auth_header[512],query[512],tok[30],*p0,*p1,*p2,*id,*out;
   FILE *fp;
   CURL *curl;
   CURLcode res;
@@ -31,13 +31,16 @@ int main(int argc,char *argv[]){
   if(res!=CURLE_OK)return 0;
   printf("%s\n",out);
 
+  strcpy(tok,"\"id\": \"");
+  p0=out;
   for(i=0;;i++){
-    strcpy(tok,"\"id\": \"");
-    p1=strstr(out,tok);
+    p1=strstr(p0,tok);
     if(p1==NULL)break;
-    id=p1+strlen(tok);
-    p2=strstr(id,"\"");
+    p0=p1+strlen(tok);
+    id=p0;
+    p2=strstr(p0,"\"");
     if(p2==NULL)break;
+    p0++;
   }
   if(i!=1)return 0;
   *p2='\0';
