@@ -25,8 +25,10 @@ int main(int argc,char *argv[]){
   curl_easy_setopt(curl,CURLOPT_WRITEDATA,&out);
   curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
   curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headers);
+ char errbuf[1000]; curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
+
   res=curl_easy_perform(curl);
-    printf("1\n");
+  printf("---%s\n",errbuf);
 
   if(res!=CURLE_OK)return 0;
     printf("2\n");
