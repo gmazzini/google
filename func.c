@@ -6,11 +6,11 @@
 #define BUFOUT 5000000
 
 int newout=1;
+size_t actpos=0;
 static size_t write_cb2(void *ptr,size_t size,size_t nmemb,void *userdata){
   size_t realsize=size*nmemb;
   char **buffer=(char **)userdata;
   static char *out=NULL;
-  static size_t actpos=0;
   if(out==NULL){
     out=(char *)malloc(BUFOUT*sizeof(char));
     if(out==NULL)return 0;
