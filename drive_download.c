@@ -19,6 +19,7 @@ int main(int argc,char *argv[]){
   headers=curl_slist_append(headers,auth_header);
   sprintf(query,"q=name='%s' and '%s' in parents",curl_easy_escape(curl,argv[1],0),curl_easy_escape(curl,argv[2],0));
   sprintf(url,"https://www.googleapis.com/drive/v3/files?%s",myencode(query));
+  printf("%s\n",url);
   curl=curl_easy_init();
   if(!curl)return 0;
   curl_easy_setopt(curl,CURLOPT_URL,url);
