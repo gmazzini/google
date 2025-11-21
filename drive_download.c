@@ -20,7 +20,7 @@ int main(int argc,char *argv[]){
   sprintf(url,"https://www.googleapis.com/drive/v3/files?q=name='%s' and '%s' in parents&fields=files(id,name)",curl_easy_escape(curl,argv[1],0),curl_easy_escape(curl,argv[2],0));
   curl=curl_easy_init();
   if(!curl)return 0;
-  curl_easy_setopt(curl,CURLOPT_URL,url);
+  curl_easy_setopt(curl,CURLOPT_URL,myencode(url));
   curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,write_cb2);
   curl_easy_setopt(curl,CURLOPT_WRITEDATA,&out);
   curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
