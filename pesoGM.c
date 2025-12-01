@@ -1,5 +1,5 @@
 #include "func.c"
-#include "pesoGM.def"
+#include "/home/www/data/pesoGM.def"
 
 int main(){
   char access_token[512],url[512],auth_header[512],*out,post[2000],*qs,*p1;
