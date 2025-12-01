@@ -6,6 +6,7 @@ int main(){
   FILE *fp;
   CURL *curl;
   CURLcode res;
+  long dt;
   struct curl_slist *headers=NULL;
 
   printf("Content-Type: text/plain\r\n\r\n");
@@ -20,8 +21,9 @@ int main(){
   if(!fgets(access_token,512,fp)){fclose(fp); return 0;}
   fclose(fp);
   access_token[strcspn(access_token,"\n")]='\0';
+  dt=time(NULL)/86400-20080;
 
-  sprintf(post,"{ \"valueInputOption\": \"RAW\", \"data\": [{ \"range\": \"%s\", \"majorDimension\": \"%s\", \"values\": [[ %s ]] }] }",PAR2,PAR3,p1);
+  sprintf(post,"{ \"valueInputOption\": \"RAW\", \"data\": [{ \"range\": \"%s%ld\", \"majorDimension\": \"%s\", \"values\": [[ %s ]] }] }",PAR2,dt,PAR3,p1);
   sprintf(auth_header,"Authorization: Bearer %s",access_token);
   headers=curl_slist_append(headers,"Content-Type: application/json");
   headers=curl_slist_append(headers,auth_header);
