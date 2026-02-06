@@ -114,37 +114,6 @@ static int extract_id(const char *json, char *out_id, size_t outsz) {
   return 1;
 }
 
-static int http_do(CURL *curl, const char *url, struct curl_slist *headers,
-                   struct mem *out, long *http_code) {
-  CURLcode res;
-
-  curl_easy_setopt(curl, CURLOPT_URL, url);
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, out);
-
-  // SSL verify ON
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
-
-  // timeout
-  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
-  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 300L);
-
-  res = curl_easy_perform(curl);
-  if (res != CURLE_OK) {
-    fprintf(stderr, "Errore curl: %s\n", curl_easy_strerror(res));
-    return 0;
-  }
-
-  if (http_code) {
-    long code = 0;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-    *http_code = code;
-  }
-  return 1;
-}
-
 static int upload_media(CURL *curl, struct curl_slist *headers,
                         FILE *fp, curl_off_t filesize,
                         char *out_file_id, size_t outsz) {
