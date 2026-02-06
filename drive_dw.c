@@ -1,7 +1,6 @@
 /*
- * gdrive_get_mp3.c
  *
- * Scarica un file (es. MP3) da Google Drive cercandolo per:
+ * Scarica un file da Google Drive cercandolo per:
  *   - name = argv[1]
  *   - parent folder id = argv[2]
  * e salvandolo in argv[3].
@@ -12,11 +11,6 @@
  * - parsing JSON più robusto e limitazione fields/pageSize
  * - stampa HTTP code + body in caso di errore
  *
- * Build:
- *   gcc -O2 -Wall -Wextra -o gdrive_get_mp3 gdrive_get_mp3.c -lcurl
- *
- * Uso:
- *   ./gdrive_get_mp3 "file.mp3" "PARENT_FOLDER_ID" "/tmp/file.mp3"
  */
 
 #include <stdio.h>
