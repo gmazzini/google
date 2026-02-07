@@ -1,18 +1,16 @@
 /*
- * Upload Google Drive (v3) in 2 step:
- *  1) POST uploadType=media -> crea file binario e ottiene id
- *  2) PATCH files/{id}?addParents=... -> set name + parent
+ * Google Drive (v3) upload in 2 steps:
+ *  1) POST uploadType=media  -> creates a binary file and returns its id
+ *  2) PATCH files/{id}?addParents=... -> sets name + parent
  *
- * Migliorie rispetto al vecchio:
- * - SSL verify ON (CURLOPT_SSL_VERIFYPEER/VERIFYHOST)
- * - timeout ragionevoli
- * - streaming del file (non lo carica tutto in RAM)
- * - gestione errori: stampa HTTP code + body
+ * Improvements vs the older version:
+ * - SSL verification ON (CURLOPT_SSL_VERIFYPEER/VERIFYHOST)
+ * - reasonable timeouts
+ * - file streaming (does not load the whole file into RAM)
+ * - error handling: print HTTP code + body
  * - supportsAllDrives=true
- * - parsing JSON per id più robusto
+ * - more robust JSON parsing for id
  *
- * Requisiti:
- * - access token in /home/www/data/google_access_token (una riga)
  */
 
 #include <stdio.h>
@@ -55,24 +53,24 @@ static size_t read_file_cb(char *buffer, size_t size, size_t nitems, void *userd
 static int read_access_token(char *buf, size_t buflen) {
   FILE *fp = fopen(TOKEN_FILE, "r");
   if (!fp) {
-    fprintf(stderr, "Errore: impossibile aprire %s\n", TOKEN_FILE);
+    fprintf(stderr, "Error: unable to open %s\n", TOKEN_FILE);
     return 0;
   }
   if (!fgets(buf, (int)buflen, fp)) {
     fclose(fp);
-    fprintf(stderr, "Errore: impossibile leggere access token\n");
+    fprintf(stderr, "Error: unable to read access token\n");
     return 0;
   }
   fclose(fp);
   buf[strcspn(buf, "\r\n")] = '\0';
   if (buf[0] == '\0') {
-    fprintf(stderr, "Errore: access token vuoto\n");
+    fprintf(stderr, "Error: empty access token\n");
     return 0;
   }
   return 1;
 }
 
-/* mime minimale, puoi sostituire con la tua mime() se vuoi */
+/* Minimal MIME mapping; replace with your own mime() if you prefer */
 static const char *mime_from_name(const char *name) {
   const char *ext = strrchr(name, '.');
   if (!ext) return "application/octet-stream";
@@ -88,7 +86,7 @@ static const char *mime_from_name(const char *name) {
   return "application/octet-stream";
 }
 
-/* Estrae "id":"...." dal JSON (prima occorrenza) */
+/* Extract "id":"...." from JSON (first occurrence) */
 static int extract_id(const char *json, char *out_id, size_t outsz) {
   if (!json || !out_id || outsz == 0) return 0;
 
@@ -133,17 +131,17 @@ static int upload_media(CURL *curl, struct curl_slist *headers,
   curl_easy_setopt(curl, CURLOPT_URL, url);
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
-  // POST con body letto da FILE*
+  /* POST body read from FILE* */
   curl_easy_setopt(curl, CURLOPT_POST, 1L);
   curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_file_cb);
   curl_easy_setopt(curl, CURLOPT_READDATA, fp);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, filesize);
 
-  // output body
+  /* Response body */
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
 
-  // SSL + timeout
+  /* SSL + timeouts */
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
@@ -165,7 +163,7 @@ static int upload_media(CURL *curl, struct curl_slist *headers,
   }
 
   if (!extract_id(body.ptr, out_file_id, outsz)) {
-    fprintf(stderr, "Errore: impossibile estrarre id dal JSON.\n");
+    fprintf(stderr, "Error: unable to extract id from JSON.\n");
     fprintf(stderr, "BODY: %s\n", body.ptr ? body.ptr : "(null)");
     free(body.ptr);
     return 0;
@@ -190,8 +188,8 @@ static int patch_metadata(CURL *curl, struct curl_slist *headers,
            "&fields=id,name,parents",
            file_id, parent_id);
 
-  // JSON minimal: set name
-  // (se remote_name contiene " speciali, dovresti fare escaping JSON)
+  /* Minimal JSON: set name
+     (if remote_name contains quotes/special characters, you should JSON-escape it) */
   snprintf(json, sizeof(json), "{ \"name\": \"%s\" }", remote_name);
 
   mem_init(&body);
@@ -227,8 +225,8 @@ static int patch_metadata(CURL *curl, struct curl_slist *headers,
     return 0;
   }
 
-  // opzionale: stampa risposta patch (debug)
-  // printf("%s\n", body.ptr ? body.ptr : "");
+  /* Optional: print patch response (debug) */
+  /* printf("%s\n", body.ptr ? body.ptr : ""); */
 
   free(body.ptr);
   return 1;
@@ -245,7 +243,7 @@ int main(int argc, char *argv[]) {
   struct curl_slist *headers_patch = NULL;
 
   if (argc != 4) {
-    fprintf(stderr, "Uso: %s LOCAL_FILE PARENT_FOLDER_ID REMOTE_NAME\n", argv[0]);
+    fprintf(stderr, "Usage: %s LOCAL_FILE PARENT_FOLDER_ID REMOTE_NAME\n", argv[0]);
     return 1;
   }
 
@@ -255,7 +253,7 @@ int main(int argc, char *argv[]) {
 
   FILE *fp = fopen(argv[1], "rb");
   if (!fp) {
-    fprintf(stderr, "Errore: impossibile aprire file %s\n", argv[1]);
+    fprintf(stderr, "Error: unable to open file %s\n", argv[1]);
     return 1;
   }
 
@@ -263,35 +261,35 @@ int main(int argc, char *argv[]) {
   long fs_long = ftell(fp);
   fseek(fp, 0, SEEK_SET);
   if (fs_long < 0) {
-    fprintf(stderr, "Errore: ftell fallita\n");
+    fprintf(stderr, "Error: ftell failed\n");
     fclose(fp);
     return 1;
   }
   curl_off_t fs = (curl_off_t)fs_long;
 
   if (curl_global_init(CURL_GLOBAL_DEFAULT) != 0) {
-    fprintf(stderr, "Errore: curl_global_init fallita\n");
+    fprintf(stderr, "Error: curl_global_init failed\n");
     fclose(fp);
     return 1;
   }
 
   curl = curl_easy_init();
   if (!curl) {
-    fprintf(stderr, "Errore: curl_easy_init fallita\n");
+    fprintf(stderr, "Error: curl_easy_init failed\n");
     fclose(fp);
     curl_global_cleanup();
     return 1;
   }
 
-  // Authorization header
+  /* Authorization header */
   snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", access_token);
 
-  // ---- headers per upload (Content-Type + Authorization)
+  /* ---- upload headers (Content-Type + Authorization) */
   snprintf(ct_header, sizeof(ct_header), "Content-Type: %s", mime_from_name(argv[3]));
   headers_upload = curl_slist_append(headers_upload, ct_header);
   headers_upload = curl_slist_append(headers_upload, auth_header);
 
-  // ---- step 1: upload media -> id
+  /* ---- step 1: upload media -> id */
   if (!upload_media(curl, headers_upload, fp, fs, file_id, sizeof(file_id))) {
     fclose(fp);
     curl_slist_free_all(headers_upload);
@@ -301,13 +299,13 @@ int main(int argc, char *argv[]) {
   }
   fclose(fp);
 
-  // ---- headers per patch (JSON + Authorization)
+  /* ---- patch headers (JSON + Authorization) */
   headers_patch = curl_slist_append(headers_patch, "Content-Type: application/json");
   headers_patch = curl_slist_append(headers_patch, auth_header);
 
-  // ---- step 2: patch name + addParents
+  /* ---- step 2: patch name + addParents */
   if (!patch_metadata(curl, headers_patch, file_id, argv[2], argv[3])) {
-    fprintf(stderr, "Upload creato ma patch fallita. id=%s\n", file_id);
+    fprintf(stderr, "Upload created but patch failed. id=%s\n", file_id);
     curl_slist_free_all(headers_upload);
     curl_slist_free_all(headers_patch);
     curl_easy_cleanup(curl);
@@ -315,7 +313,7 @@ int main(int argc, char *argv[]) {
     return 3;
   }
 
-  printf("OK: caricato %s -> id=%s (parent=%s name=%s)\n", argv[1], file_id, argv[2], argv[3]);
+  printf("OK: uploaded %s -> id=%s (parent=%s name=%s)\n", argv[1], file_id, argv[2], argv[3]);
 
   curl_slist_free_all(headers_upload);
   curl_slist_free_all(headers_patch);
