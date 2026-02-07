@@ -1,184 +1,253 @@
 /*
+ * drive_ls.c
  *
- * List entries in a directory (like a simple "ls").
- * Designed to work well even with very large directories:
- *  - default mode streams output (does NOT store all names in RAM)
- *  - optional --sort uses scandir() (stores entries -> higher memory use)
+ * List files in a Google Drive folder (parent ID), similar to "ls".
+ * Uses Google Drive API v3 and follows nextPageToken for large folders.
  *
- * Exit codes:
- *  0 = OK
- *  1 = invalid arguments
- *  2 = cannot open directory
- *  3 = read error while iterating directory
+ * Requirements:
+ * - access token stored in TOKEN_FILE (single line), kept up-to-date externally
+ * - libcurl
  */
-
-#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <getopt.h>
+#include <curl/curl.h>
 
-static void usage(const char *prog) {
-  fprintf(stderr,
-    "Usage: %s [options] <directory>\n"
-    "\n"
-    "Options:\n"
-    "  -a, --all        include hidden entries (starting with '.')\n"
-    "  -f, --full-path  print full path (dir/name) instead of just name\n"
-    "  -s, --sort       sort by name (uses memory; slower on huge dirs)\n"
-    "  -h, --help       show this help\n"
-    "\n"
-    "Examples:\n"
-    "  %s /var/log\n"
-    "  %s -a --full-path /etc\n"
-    "  %s --sort .\n",
-    prog, prog, prog, prog
-  );
+#define TOKEN_FILE "/home/www/data/google_access_token"
+
+struct mem {
+  char *ptr;
+  size_t len;
+};
+
+static void mem_init(struct mem *m) {
+  m->len = 0;
+  m->ptr = (char*)malloc(1);
+  if (m->ptr) m->ptr[0] = '\0';
 }
 
-static int is_dot_or_dotdot(const char *name) {
-  return (strcmp(name, ".") == 0 || strcmp(name, "..") == 0);
+static size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
+  size_t realsize = size * nmemb;
+  struct mem *m = (struct mem*)userp;
+
+  char *p = (char*)realloc(m->ptr, m->len + realsize + 1);
+  if (!p) return 0;
+
+  m->ptr = p;
+  memcpy(&(m->ptr[m->len]), contents, realsize);
+  m->len += realsize;
+  m->ptr[m->len] = '\0';
+  return realsize;
 }
 
-static void print_entry(const char *dir, const char *name, int full_path) {
-  if (!full_path) {
-    puts(name);
-    return;
+static int read_access_token(char *buf, size_t buflen) {
+  FILE *fp = fopen(TOKEN_FILE, "r");
+  if (!fp) {
+    fprintf(stderr, "Error: cannot open token file %s\n", TOKEN_FILE);
+    return 0;
   }
 
-  /* Build dir/name safely */
-  size_t dlen = strlen(dir);
-  int need_slash = (dlen > 0 && dir[dlen - 1] != '/');
+  if (!fgets(buf, (int)buflen, fp)) {
+    fprintf(stderr, "Error: cannot read token from %s\n", TOKEN_FILE);
+    fclose(fp);
+    return 0;
+  }
+  fclose(fp);
 
-  /* +1 for '/' if needed, +1 for '\0' */
-  size_t out_len = dlen + (need_slash ? 1 : 0) + strlen(name) + 1;
-
-  char *out = (char*)malloc(out_len);
-  if (!out) {
-    /* If we can't allocate, fall back to printing just the name. */
-    puts(name);
-    return;
+  /* strip trailing newline(s) */
+  size_t n = strlen(buf);
+  while (n > 0 && (buf[n-1] == '\n' || buf[n-1] == '\r')) {
+    buf[n-1] = '\0';
+    n--;
   }
 
-  if (need_slash)
-    snprintf(out, out_len, "%s/%s", dir, name);
-  else
-    snprintf(out, out_len, "%s%s", dir, name);
-
-  puts(out);
-  free(out);
-}
-
-static int list_streaming(const char *dir, int show_all, int full_path) {
-  DIR *dp = opendir(dir);
-  if (!dp) {
-    fprintf(stderr, "Error: cannot open directory '%s': %s\n", dir, strerror(errno));
-    return 2;
+  if (buf[0] == '\0') {
+    fprintf(stderr, "Error: empty token in %s\n", TOKEN_FILE);
+    return 0;
   }
-
-  errno = 0;
-  struct dirent *de;
-  while ((de = readdir(dp)) != NULL) {
-    const char *name = de->d_name;
-
-    if (is_dot_or_dotdot(name)) continue;
-    if (!show_all && name[0] == '.') continue;
-
-    print_entry(dir, name, full_path);
-    errno = 0;
-  }
-
-  if (errno != 0) {
-    fprintf(stderr, "Error: readdir() failed on '%s': %s\n", dir, strerror(errno));
-    closedir(dp);
-    return 3;
-  }
-
-  closedir(dp);
-  return 0;
-}
-
-static int filter_hidden(const struct dirent *de) {
-  /* This filter keeps everything; hidden filtering is handled later
-     because we also skip '.' and '..'. */
-  (void)de;
   return 1;
 }
 
-static int list_sorted(const char *dir, int show_all, int full_path) {
-  struct dirent **namelist = NULL;
+/* Extract nextPageToken from JSON response into out (or set out to empty). */
+static int extract_next_page_token(const char *json, char *out, size_t outsz) {
+  if (!json || !out || outsz == 0) return 0;
+  out[0] = '\0';
 
-  int n = scandir(dir, &namelist, filter_hidden, alphasort);
-  if (n < 0) {
-    fprintf(stderr, "Error: cannot scan directory '%s': %s\n", dir, strerror(errno));
-    return 2;
+  const char *p = strstr(json, "\"nextPageToken\"");
+  if (!p) return 1; /* not found = no more pages, but not an error */
+
+  p = strchr(p, ':');
+  if (!p) return 0;
+  p++;
+
+  while (*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t') p++;
+  if (*p != '"') return 0;
+  p++;
+
+  const char *e = strchr(p, '"');
+  if (!e) return 0;
+
+  size_t n = (size_t)(e - p);
+  if (n + 1 > outsz) return 0;
+
+  memcpy(out, p, n);
+  out[n] = '\0';
+  return 1;
+}
+
+/*
+ * Very small/naive "parser" to print file names.
+ * It prints every occurrence of: "name": "<...>"
+ * This matches the minimalist approach used in the other tools.
+ */
+static void print_names(const char *json) {
+  const char *p = json;
+
+  while ((p = strstr(p, "\"name\"")) != NULL) {
+    p = strchr(p, ':');
+    if (!p) break;
+    p++;
+
+    while (*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t') p++;
+    if (*p != '"') continue;
+    p++;
+
+    const char *e = strchr(p, '"');
+    if (!e) break;
+
+    fwrite(p, 1, (size_t)(e - p), stdout);
+    fputc('\n', stdout);
+
+    p = e + 1;
+  }
+}
+
+static int drive_list_folder(const char *parent_id) {
+  CURL *curl = NULL;
+  struct curl_slist *headers = NULL;
+  char token[2048];
+  char auth[4096];
+  long http = 0;
+
+  /* pagination */
+  char page_token[2048];
+  page_token[0] = '\0';
+
+  if (!read_access_token(token, sizeof(token))) {
+    return 1;
   }
 
-  for (int i = 0; i < n; i++) {
-    const char *name = namelist[i]->d_name;
-
-    if (is_dot_or_dotdot(name)) { free(namelist[i]); continue; }
-    if (!show_all && name[0] == '.') { free(namelist[i]); continue; }
-
-    print_entry(dir, name, full_path);
-    free(namelist[i]);
+  curl = curl_easy_init();
+  if (!curl) {
+    fprintf(stderr, "Error: curl_easy_init failed\n");
+    return 1;
   }
 
-  free(namelist);
+  snprintf(auth, sizeof(auth), "Authorization: Bearer %s", token);
+  headers = curl_slist_append(headers, auth);
+
+  for (;;) {
+    char url[8192];
+    struct mem body;
+
+    /* Query: '<parent>' in parents and trashed=false */
+    if (page_token[0]) {
+      snprintf(url, sizeof(url),
+        "https://www.googleapis.com/drive/v3/files"
+        "?q='%s'+in+parents+and+trashed=false"
+        "&fields=nextPageToken,files(name)"
+        "&pageSize=1000"
+        "&pageToken=%s"
+        "&supportsAllDrives=true"
+        "&includeItemsFromAllDrives=true",
+        parent_id, page_token
+      );
+    } else {
+      snprintf(url, sizeof(url),
+        "https://www.googleapis.com/drive/v3/files"
+        "?q='%s'+in+parents+and+trashed=false"
+        "&fields=nextPageToken,files(name)"
+        "&pageSize=1000"
+        "&supportsAllDrives=true"
+        "&includeItemsFromAllDrives=true",
+        parent_id
+      );
+    }
+
+    mem_init(&body);
+
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&body);
+
+    /* SSL checks ON (same spirit as your tools) */
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+
+    /* reasonable timeouts */
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
+
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "drive-ls/1.0");
+
+    CURLcode res = curl_easy_perform(curl);
+    if (res != CURLE_OK) {
+      fprintf(stderr, "Error: HTTP request failed: %s\n", curl_easy_strerror(res));
+      free(body.ptr);
+      break;
+    }
+
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http);
+
+    if (http < 200 || http >= 300) {
+      fprintf(stderr, "Error: Drive API returned HTTP %ld\n", http);
+      if (body.ptr && body.len > 0) {
+        fprintf(stderr, "Body:\n%s\n", body.ptr);
+      }
+      free(body.ptr);
+      break;
+    }
+
+    /* Print file names for this page */
+    if (body.ptr && body.len > 0) {
+      print_names(body.ptr);
+
+      /* Get next page token */
+      if (!extract_next_page_token(body.ptr, page_token, sizeof(page_token))) {
+        fprintf(stderr, "Error: cannot parse nextPageToken\n");
+        free(body.ptr);
+        break;
+      }
+    } else {
+      page_token[0] = '\0';
+    }
+
+    free(body.ptr);
+
+    if (page_token[0] == '\0') {
+      /* no more pages */
+      break;
+    }
+  }
+
+  curl_slist_free_all(headers);
+  curl_easy_cleanup(curl);
   return 0;
 }
 
 int main(int argc, char **argv) {
-  int show_all = 0;
-  int full_path = 0;
-  int do_sort = 0;
-
-  static const struct option long_opts[] = {
-    { "all",       no_argument, 0, 'a' },
-    { "full-path", no_argument, 0, 'f' },
-    { "sort",      no_argument, 0, 's' },
-    { "help",      no_argument, 0, 'h' },
-    { 0, 0, 0, 0 }
-  };
-
-  int c;
-  while ((c = getopt_long(argc, argv, "afsh", long_opts, NULL)) != -1) {
-    switch (c) {
-      case 'a': show_all = 1; break;
-      case 'f': full_path = 1; break;
-      case 's': do_sort = 1; break;
-      case 'h': usage(argv[0]); return 0;
-      default:
-        usage(argv[0]);
-        return 1;
-    }
-  }
-
-  if (optind != argc - 1) {
-    usage(argv[0]);
+  if (argc != 2) {
+    fprintf(stderr, "Usage: %s <parent_folder_id>\n", argv[0]);
+    fprintf(stderr, "Note: access token is read from %s\n", TOKEN_FILE);
     return 1;
   }
 
-  const char *dir = argv[optind];
-
-  /* Basic sanity check: directory must exist and be a directory */
-  struct stat st;
-  if (stat(dir, &st) != 0) {
-    fprintf(stderr, "Error: cannot stat '%s': %s\n", dir, strerror(errno));
-    return 2;
-  }
-  if (!S_ISDIR(st.st_mode)) {
-    fprintf(stderr, "Error: '%s' is not a directory\n", dir);
-    return 2;
-  }
-
-  if (do_sort)
-    return list_sorted(dir, show_all, full_path);
-  else
-    return list_streaming(dir, show_all, full_path);
+  curl_global_init(CURL_GLOBAL_DEFAULT);
+  int rc = drive_list_folder(argv[1]);
+  curl_global_cleanup();
+  return rc;
 }
+
