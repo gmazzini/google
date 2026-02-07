@@ -33,12 +33,12 @@ static size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
 static int read_access_token(char *buf, size_t buflen) {
   FILE *fp = fopen(TOKEN_FILE, "r");
   if (!fp) {
-    fprintf(stderr, "Errore: impossibile aprire %s\n", TOKEN_FILE);
+    fprintf(stderr, "Error: unable to open %s\n", TOKEN_FILE);
     return 0;
   }
   if (!fgets(buf, (int)buflen, fp)) {
     fclose(fp);
-    fprintf(stderr, "Errore: impossibile leggere access token\n");
+    fprintf(stderr, "Error: unable to read access token\n");
     return 0;
   }
   fclose(fp);
@@ -59,8 +59,8 @@ int main(int argc, char *argv[]) {
 
   if (argc != 5) {
     fprintf(stderr,
-      "Uso: %s SPREADSHEET_ID RANGE MAJOR_DIMENSION VALUES\n"
-      "Esempio: %s ID \"Foglio1!A1:B1\" ROWS \"\\\"a\\\",\\\"b\\\"\"\n",
+      "Usage: %s SPREADSHEET_ID RANGE MAJOR_DIMENSION VALUES\n"
+      "Example: %s ID \"Sheet1!A1:B1\" ROWS \"\\\"a\\\",\\\"b\\\"\"\n",
       argv[0], argv[0]);
     return 1;
   }
@@ -70,13 +70,13 @@ int main(int argc, char *argv[]) {
   }
 
   if (curl_global_init(CURL_GLOBAL_DEFAULT) != 0) {
-    fprintf(stderr, "Errore: curl_global_init fallita\n");
+    fprintf(stderr, "Error: curl_global_init failed\n");
     return 1;
   }
 
   curl = curl_easy_init();
   if (!curl) {
-    fprintf(stderr, "Errore: curl_easy_init fallita\n");
+    fprintf(stderr, "Error: curl_easy_init failed\n");
     curl_global_cleanup();
     return 1;
   }
@@ -116,13 +116,13 @@ int main(int argc, char *argv[]) {
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 
-  /* timeout */
+  /* Timeouts */
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 120L);
 
   CURLcode res = curl_easy_perform(curl);
   if (res != CURLE_OK) {
-    fprintf(stderr, "Errore curl: %s\n", curl_easy_strerror(res));
+    fprintf(stderr, "curl error: %s\n", curl_easy_strerror(res));
     goto fail;
   }
 
