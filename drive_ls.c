@@ -4,9 +4,6 @@
  * List files in a Google Drive folder (parent ID), similar to "ls".
  * Uses Google Drive API v3 and follows nextPageToken for large folders.
  *
- * Requirements:
- * - access token stored in TOKEN_FILE (single line), kept up-to-date externally
- * - libcurl
  */
 
 #include <stdio.h>
@@ -241,7 +238,6 @@ static int drive_list_folder(const char *parent_id) {
 int main(int argc, char **argv) {
   if (argc != 2) {
     fprintf(stderr, "Usage: %s <parent_folder_id>\n", argv[0]);
-    fprintf(stderr, "Note: access token is read from %s\n", TOKEN_FILE);
     return 1;
   }
 
