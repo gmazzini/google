@@ -1,15 +1,15 @@
 /*
- * Cerca un file su Google Drive per:
+ * Search a file on Google Drive by:
  *  - name = argv[1]
  *  - parent folder id = argv[2]
- * e stampa SOLO attributi (nessun download).
+ * and print ONLY attributes (no download).
  *
- * Exit code:
- *  0 = trovato (1 solo file)
- *  2 = non trovato
- *  3 = ambiguita' (>=2 risultati)
- *  4 = parsing error / risposta inattesa
- *  5 = HTTP error (non 200)
+ * Exit codes:
+ *  0 = found (exactly one file)
+ *  2 = not found
+ *  3 = ambiguous (2+ results)
+ *  4 = parse error / unexpected response
+ *  5 = HTTP error (non-200)
  */
 
 #include <stdio.h>
@@ -47,24 +47,24 @@ static size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
 static int read_access_token(char *buf, size_t buflen) {
   FILE *fp = fopen(TOKEN_FILE, "r");
   if (!fp) {
-    fprintf(stderr, "Errore: impossibile aprire %s\n", TOKEN_FILE);
+    fprintf(stderr, "Error: unable to open %s\n", TOKEN_FILE);
     return 0;
   }
   if (!fgets(buf, (int)buflen, fp)) {
     fclose(fp);
-    fprintf(stderr, "Errore: impossibile leggere access token\n");
+    fprintf(stderr, "Error: unable to read access token\n");
     return 0;
   }
   fclose(fp);
   buf[strcspn(buf, "\r\n")] = '\0';
   if (buf[0] == '\0') {
-    fprintf(stderr, "Errore: access token vuoto\n");
+    fprintf(stderr, "Error: empty access token\n");
     return 0;
   }
   return 1;
 }
 
-/* URL-encode usando curl_easy_escape */
+/* URL-encode using curl_easy_escape */
 static char *urlenc(CURL *curl, const char *s) {
   if (!s) return NULL;
   return curl_easy_escape(curl, s, 0);
@@ -87,7 +87,7 @@ static int http_get(CURL *curl, const char *url, struct curl_slist *headers,
 
   res = curl_easy_perform(curl);
   if (res != CURLE_OK) {
-    fprintf(stderr, "Errore curl: %s\n", curl_easy_strerror(res));
+    fprintf(stderr, "curl error: %s\n", curl_easy_strerror(res));
     return 0;
   }
 
@@ -100,8 +100,8 @@ static int http_get(CURL *curl, const char *url, struct curl_slist *headers,
 }
 
 /*
- * Conta quanti oggetti file ci sono in "files":[{...},{...}]
- * e restituisce un puntatore all'inizio del primo oggetto '{' (se presente).
+ * Count how many file objects are present in "files":[{...},{...}]
+ * and return a pointer to the beginning of the first object '{' (if any).
  */
 static int count_files_and_first_obj(const char *json, const char **first_obj) {
   if (first_obj) *first_obj = NULL;
@@ -113,12 +113,12 @@ static int count_files_and_first_obj(const char *json, const char **first_obj) {
   const char *arr = strchr(files, '[');
   if (!arr) return 0;
 
-  // trova primo '{'
+  /* Find first '{' */
   const char *p = strchr(arr, '{');
   if (!p) return 0;
   if (first_obj) *first_obj = p;
 
-  // conta occorrenze di '{' finché non chiude l'array ']'
+  /* Count '{' occurrences until array closing ']' */
   int count = 0;
   const char *end = strchr(arr, ']');
   if (!end) end = json + strlen(json);
@@ -127,15 +127,15 @@ static int count_files_and_first_obj(const char *json, const char **first_obj) {
   while ((q = strchr(q, '{')) && q < end) {
     count++;
     q++;
-    if (count >= 2) break; // noi chiediamo pageSize=2
+    if (count >= 2) break; /* pageSize=2 */
   }
   return count;
 }
 
 /*
- * Estrae un valore stringa semplice per una chiave JSON dentro un singolo oggetto:
+ * Extract a simple JSON string value for a key inside a single object:
  * "key":"VALUE"
- * Ritorna 1 se trovato, 0 se non trovato.
+ * Returns 1 if found, 0 otherwise.
  */
 static int json_get_string_field(const char *obj, const char *key, char *out, size_t outsz) {
   if (!obj || !key || !out || outsz == 0) return 0;
@@ -148,11 +148,11 @@ static int json_get_string_field(const char *obj, const char *key, char *out, si
   if (!p) return 0;
   p++;
 
-  // salta spazi
+  /* Skip whitespace */
   while (*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t') p++;
 
   if (*p != '"') return 0;
-  p++; // dopo "
+  p++; /* after '"' */
 
   const char *e = strchr(p, '"');
   if (!e) return 0;
@@ -165,8 +165,8 @@ static int json_get_string_field(const char *obj, const char *key, char *out, si
 }
 
 /*
- * Estrae un valore numerico come stringa (es. "size": "1234" oppure "size": 1234).
- * Restituisce 1 se trovato.
+ * Extract a numeric-like value as string (e.g. "size": "1234" or "size": 1234).
+ * Returns 1 if found.
  */
 static int json_get_numberish_field(const char *obj, const char *key, char *out, size_t outsz) {
   if (!obj || !key || !out || outsz == 0) return 0;
@@ -181,7 +181,7 @@ static int json_get_numberish_field(const char *obj, const char *key, char *out,
 
   while (*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t') p++;
 
-  // può essere "123" o 123
+  /* May be "123" or 123 */
   if (*p == '"') p++;
 
   const char *e = p;
@@ -209,7 +209,7 @@ int main(int argc, char *argv[]) {
   long http = 0;
 
   if (argc != 3) {
-    fprintf(stderr, "Uso: %s \"NOMEFILE\" \"PARENT_FOLDER_ID\"\n", argv[0]);
+    fprintf(stderr, "Usage: %s \"FILENAME\" \"PARENT_FOLDER_ID\"\n", argv[0]);
     return 1;
   }
 
@@ -218,13 +218,13 @@ int main(int argc, char *argv[]) {
   }
 
   if (curl_global_init(CURL_GLOBAL_DEFAULT) != 0) {
-    fprintf(stderr, "Errore: curl_global_init fallita\n");
+    fprintf(stderr, "Error: curl_global_init failed\n");
     return 1;
   }
 
   curl = curl_easy_init();
   if (!curl) {
-    fprintf(stderr, "Errore: curl_easy_init fallita\n");
+    fprintf(stderr, "Error: curl_easy_init failed\n");
     curl_global_cleanup();
     return 1;
   }
@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
   char *esc_name = urlenc(curl, argv[1]);
   char *esc_parent = urlenc(curl, argv[2]);
   if (!esc_name || !esc_parent) {
-    fprintf(stderr, "Errore: urlenc fallita\n");
+    fprintf(stderr, "Error: url encoding failed\n");
     curl_free(esc_name);
     curl_free(esc_parent);
     curl_slist_free_all(headers);
@@ -253,14 +253,14 @@ int main(int argc, char *argv[]) {
 
   char *esc_q = urlenc(curl, query);
   if (!esc_q) {
-    fprintf(stderr, "Errore: urlenc(query) fallita\n");
+    fprintf(stderr, "Error: url encoding of query failed\n");
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
     curl_global_cleanup();
     return 1;
   }
 
-  // fields ridotti: prendiamo solo quello che serve
+  /* Reduced fields: only what is needed */
   snprintf(url, sizeof(url),
            "https://www.googleapis.com/drive/v3/files"
            "?q=%s"
@@ -296,7 +296,7 @@ int main(int argc, char *argv[]) {
   int count = count_files_and_first_obj(body.ptr, &first_obj);
 
   if (count == 0) {
-    // non trovato
+    /* Not found */
     free(body.ptr);
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
@@ -304,8 +304,8 @@ int main(int argc, char *argv[]) {
     return 2;
   }
   if (count >= 2) {
-    // ambiguità
-    fprintf(stderr, "Ambiguita': trovati >= 2 file con lo stesso name nel parent.\n");
+    /* Ambiguous result */
+    fprintf(stderr, "Ambiguous result: found 2+ files with the same name in the parent folder.\n");
     fprintf(stderr, "BODY: %s\n", body.ptr ? body.ptr : "(null)");
     free(body.ptr);
     curl_slist_free_all(headers);
@@ -315,7 +315,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (!first_obj) {
-    fprintf(stderr, "Errore parsing JSON: oggetto file non trovato.\n");
+    fprintf(stderr, "JSON parse error: file object not found.\n");
     fprintf(stderr, "BODY: %s\n", body.ptr ? body.ptr : "(null)");
     free(body.ptr);
     curl_slist_free_all(headers);
@@ -324,7 +324,7 @@ int main(int argc, char *argv[]) {
     return 4;
   }
 
-  // Estrai attributi del primo (unico) file
+  /* Extract attributes of the first (and only) file */
   char id[256] = {0};
   char name[512] = {0};
   char mime[256] = {0};
@@ -343,8 +343,8 @@ int main(int argc, char *argv[]) {
   (void)json_get_string_field(first_obj, "sha1Checksum", sha1, sizeof(sha1));
   (void)json_get_string_field(first_obj, "sha256Checksum", sha256, sizeof(sha256));
 
-  // Output "pulito" (facile da parsare da shell)
-  // Se un campo manca, rimane vuoto.
+  /* Clean output (easy to parse from shell).
+     Missing fields are printed as empty values. */
   printf("id=%s\n", id);
   printf("name=%s\n", name);
   printf("mimeType=%s\n", mime);
