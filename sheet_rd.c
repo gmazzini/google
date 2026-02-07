@@ -33,18 +33,18 @@ static size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
 static int read_access_token(char *buf, size_t buflen) {
   FILE *fp = fopen(TOKEN_FILE, "r");
   if (!fp) {
-    fprintf(stderr, "Errore: impossibile aprire %s\n", TOKEN_FILE);
+    fprintf(stderr, "Error: unable to open %s\n", TOKEN_FILE);
     return 0;
   }
   if (!fgets(buf, (int)buflen, fp)) {
     fclose(fp);
-    fprintf(stderr, "Errore: impossibile leggere access token\n");
+    fprintf(stderr, "Error: unable to read access token\n");
     return 0;
   }
   fclose(fp);
   buf[strcspn(buf, "\r\n")] = '\0';
   if (buf[0] == '\0') {
-    fprintf(stderr, "Errore: access token vuoto\n");
+    fprintf(stderr, "Error: empty access token\n");
     return 0;
   }
   return 1;
@@ -63,8 +63,8 @@ int main(int argc, char *argv[]) {
   long http = 0;
 
   if (argc != 3) {
-    fprintf(stderr, "Uso: %s SPREADSHEET_ID RANGE\n", argv[0]);
-    fprintf(stderr, "Esempio RANGE: Sheet1!A1:D10 oppure 'Foglio 1'!A:B\n");
+    fprintf(stderr, "Usage: %s SPREADSHEET_ID RANGE\n", argv[0]);
+    fprintf(stderr, "Range examples: Sheet1!A1:D10 or 'Sheet 1'!A:B\n");
     return 1;
   }
 
@@ -73,21 +73,21 @@ int main(int argc, char *argv[]) {
   }
 
   if (curl_global_init(CURL_GLOBAL_DEFAULT) != 0) {
-    fprintf(stderr, "Errore: curl_global_init fallita\n");
+    fprintf(stderr, "Error: curl_global_init failed\n");
     return 1;
   }
 
   curl = curl_easy_init();
   if (!curl) {
-    fprintf(stderr, "Errore: curl_easy_init fallita\n");
+    fprintf(stderr, "Error: curl_easy_init failed\n");
     curl_global_cleanup();
     return 1;
   }
 
-  // Importante: RANGE va URL-encoded
+  /* Important: RANGE must be URL-encoded */
   char *enc_range = curl_easy_escape(curl, argv[2], 0);
   if (!enc_range) {
-    fprintf(stderr, "Errore: curl_easy_escape(range) fallita\n");
+    fprintf(stderr, "Error: curl_easy_escape(range) failed\n");
     curl_easy_cleanup(curl);
     curl_global_cleanup();
     return 1;
@@ -109,17 +109,17 @@ int main(int argc, char *argv[]) {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
 
-  // SSL verify ON
+  /* SSL verify ON */
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 
-  // timeout
+  /* Timeouts */
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 120L);
 
   res = curl_easy_perform(curl);
   if (res != CURLE_OK) {
-    fprintf(stderr, "Errore curl: %s\n", curl_easy_strerror(res));
+    fprintf(stderr, "curl error: %s\n", curl_easy_strerror(res));
     free(body.ptr);
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
     return 3;
   }
 
-  // OK
+  /* OK */
   printf("%s\n", body.ptr ? body.ptr : "");
 
   free(body.ptr);
@@ -147,3 +147,4 @@ int main(int argc, char *argv[]) {
   curl_global_cleanup();
   return 0;
 }
+
