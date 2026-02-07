@@ -1,15 +1,15 @@
 /*
  *
- * Scarica un file da Google Drive cercandolo per:
+ * Download a file from Google Drive by searching it via:
  *   - name = argv[1]
  *   - parent folder id = argv[2]
- * e salvandolo in argv[3].
+ * and saving it to argv[3].
  *
- * Fix principali rispetto al tuo:
- * - curl_easy_escape() usato SOLO dopo curl_easy_init()
- * - gestione Shared Drives: supportsAllDrives/includeItemsFromAllDrives/corpora=allDrives
- * - parsing JSON più robusto e limitazione fields/pageSize
- * - stampa HTTP code + body in caso di errore
+ * Main fixes compared to the original version:
+ * - curl_easy_escape() is used ONLY after curl_easy_init()
+ * - Shared Drives handling: supportsAllDrives/includeItemsFromAllDrives/corpora=allDrives
+ * - more robust JSON parsing + fields/pageSize limitation
+ * - print HTTP code + body on errors
  *
  */
 
@@ -48,37 +48,38 @@ static size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
 static int read_access_token(char *buf, size_t buflen) {
   FILE *fp = fopen(TOKEN_FILE, "r");
   if (!fp) {
-    fprintf(stderr, "Errore: impossibile aprire %s\n", TOKEN_FILE);
+    fprintf(stderr, "Error: unable to open %s\n", TOKEN_FILE);
     return 0;
   }
   if (!fgets(buf, (int)buflen, fp)) {
     fclose(fp);
-    fprintf(stderr, "Errore: impossibile leggere access token\n");
+    fprintf(stderr, "Error: unable to read access token\n");
     return 0;
   }
   fclose(fp);
   buf[strcspn(buf, "\r\n")] = '\0';
   if (buf[0] == '\0') {
-    fprintf(stderr, "Errore: access token vuoto\n");
+    fprintf(stderr, "Error: empty access token\n");
     return 0;
   }
   return 1;
 }
 
-/* URL-encode generico usando curl_easy_escape */
+/* Generic URL-encoding using curl_easy_escape */
 static char *urlenc(CURL *curl, const char *s) {
   if (!s) return NULL;
   return curl_easy_escape(curl, s, 0);
 }
 
 /*
- * Estrae l'ID dal JSON di files.list.
- * Ci aspettiamo risposta con fields=files(id,name) e pageSize=2.
- * Ritorna:
- *   1 se trovato esattamente 1 file e copia in out_id
- *   0 se nessun file
- *  -1 se più di un file (ambiguità)
- *  -2 parsing error
+ * Extract the file ID from the files.list JSON response.
+ * We expect fields=files(id,name) and pageSize=2.
+ *
+ * Returns:
+ *   1  if exactly one file is found and out_id is filled
+ *   0  if no file is found
+ *  -1  if more than one file is found (ambiguous)
+ *  -2  parse error
  */
 static int extract_single_id(const char *json, char *out_id, size_t outsz) {
   const char *p = json;
@@ -88,7 +89,7 @@ static int extract_single_id(const char *json, char *out_id, size_t outsz) {
 
   if (!json) return -2;
 
-  /* conta occorrenze di "id": "...." ma SOLO dentro la sezione files */
+  /* Count occurrences of "id": "...." but ONLY inside the "files" section */
   const char *files = strstr(json, "\"files\"");
   if (!files) return 0;
 
@@ -97,13 +98,13 @@ static int extract_single_id(const char *json, char *out_id, size_t outsz) {
     const char *idk = strstr(p, "\"id\"");
     if (!idk) break;
 
-    /* trova : " */
+    /* Find : " */
     const char *colon = strchr(idk, ':');
     if (!colon) { p = idk + 4; continue; }
 
     const char *q1 = strchr(colon, '"');
     if (!q1) { p = colon + 1; continue; }
-    q1++; /* dopo il primo " */
+    q1++; /* after the first '"' */
 
     const char *q2 = strchr(q1, '"');
     if (!q2) { p = q1; continue; }
@@ -114,7 +115,7 @@ static int extract_single_id(const char *json, char *out_id, size_t outsz) {
       first_id_end = q2;
     }
     p = q2 + 1;
-    if (count >= 2) break; /* noi chiediamo max 2 */
+    if (count >= 2) break; /* we request max 2 */
   }
 
   if (count == 0) return 0;
@@ -135,17 +136,17 @@ static int http_get(CURL *curl, const char *url, struct curl_slist *headers, str
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, out);
 
-  /* Sicurezza: lascia SSL verify ON di default */
+  /* Security: keep SSL verification enabled */
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 
-  /* timeout ragionevoli */
+  /* Reasonable timeouts */
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 120L);
 
   res = curl_easy_perform(curl);
   if (res != CURLE_OK) {
-    fprintf(stderr, "Errore curl: %s\n", curl_easy_strerror(res));
+    fprintf(stderr, "curl error: %s\n", curl_easy_strerror(res));
     return 0;
   }
 
@@ -172,7 +173,7 @@ int main(int argc, char *argv[]) {
   long http = 0;
 
   if (argc != 4) {
-    fprintf(stderr, "Uso: %s \"NOMEFILE\" \"PARENT_FOLDER_ID\" \"OUTPUT_PATH\"\n", argv[0]);
+    fprintf(stderr, "Usage: %s \"FILENAME\" \"PARENT_FOLDER_ID\" \"OUTPUT_PATH\"\n", argv[0]);
     return 1;
   }
 
@@ -181,26 +182,26 @@ int main(int argc, char *argv[]) {
   }
 
   if (curl_global_init(CURL_GLOBAL_DEFAULT) != 0) {
-    fprintf(stderr, "Errore: curl_global_init fallita\n");
+    fprintf(stderr, "Error: curl_global_init failed\n");
     return 1;
   }
 
   curl = curl_easy_init();
   if (!curl) {
-    fprintf(stderr, "Errore: curl_easy_init fallita\n");
+    fprintf(stderr, "Error: curl_easy_init failed\n");
     curl_global_cleanup();
     return 1;
   }
 
-  /* header Authorization */
+  /* Authorization header */
   snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", access_token);
   headers = curl_slist_append(headers, auth_header);
 
-  /* ---------- 1) files.list: cerca ID per name + parent ---------- */
+  /* ---------- 1) files.list: search ID by name + parent ---------- */
   char *esc_name = urlenc(curl, argv[1]);
   char *esc_parent = urlenc(curl, argv[2]);
   if (!esc_name || !esc_parent) {
-    fprintf(stderr, "Errore: urlenc fallita\n");
+    fprintf(stderr, "Error: URL encoding failed\n");
     curl_free(esc_name);
     curl_free(esc_parent);
     curl_slist_free_all(headers);
@@ -216,10 +217,10 @@ int main(int argc, char *argv[]) {
   curl_free(esc_name);
   curl_free(esc_parent);
 
-  /* encode query come parametro q=... */
+  /* Encode query as q=... */
   char *esc_q = urlenc(curl, query);
   if (!esc_q) {
-    fprintf(stderr, "Errore: urlenc(query) fallita\n");
+    fprintf(stderr, "Error: URL encoding of query failed\n");
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
     curl_global_cleanup();
@@ -259,9 +260,9 @@ int main(int argc, char *argv[]) {
 
   int idres = extract_single_id(body.ptr, file_id, sizeof(file_id));
   if (idres == 0) {
-    fprintf(stderr, "Nessun file trovato con name='%s' in parent='%s'\n", argv[1], argv[2]);
-    /* utile per debug: */
-    fprintf(stderr, "Risposta: %s\n", body.ptr);
+    fprintf(stderr, "No file found with name='%s' in parent='%s'\n", argv[1], argv[2]);
+    /* Useful for debugging: */
+    fprintf(stderr, "Response: %s\n", body.ptr);
     free(body.ptr);
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
@@ -269,8 +270,8 @@ int main(int argc, char *argv[]) {
     return 2;
   }
   if (idres == -1) {
-    fprintf(stderr, "Trovati piu' file con lo stesso nome (ambiguita').\n");
-    fprintf(stderr, "Risposta: %s\n", body.ptr);
+    fprintf(stderr, "Multiple files found with the same name (ambiguous result).\n");
+    fprintf(stderr, "Response: %s\n", body.ptr);
     free(body.ptr);
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
@@ -278,8 +279,8 @@ int main(int argc, char *argv[]) {
     return 3;
   }
   if (idres < 0) {
-    fprintf(stderr, "Errore parsing JSON.\n");
-    fprintf(stderr, "Risposta: %s\n", body.ptr);
+    fprintf(stderr, "JSON parse error.\n");
+    fprintf(stderr, "Response: %s\n", body.ptr);
     free(body.ptr);
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
@@ -289,7 +290,7 @@ int main(int argc, char *argv[]) {
 
   free(body.ptr);
 
-  /* ---------- 2) files.get alt=media: download binario ---------- */
+  /* ---------- 2) files.get alt=media: binary download ---------- */
   snprintf(url, sizeof(url),
            "https://www.googleapis.com/drive/v3/files/%s"
            "?alt=media"
@@ -317,7 +318,7 @@ int main(int argc, char *argv[]) {
 
   FILE *fp = fopen(argv[3], "wb");
   if (!fp) {
-    fprintf(stderr, "Errore: impossibile aprire output %s\n", argv[3]);
+    fprintf(stderr, "Error: unable to open output file %s\n", argv[3]);
     free(body.ptr);
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
@@ -330,7 +331,7 @@ int main(int argc, char *argv[]) {
   }
   fclose(fp);
 
-  printf("OK: scaricato '%s' (id=%s) in %s (%zu bytes)\n", argv[1], file_id, argv[3], body.len);
+  printf("OK: downloaded '%s' (id=%s) to %s (%zu bytes)\n", argv[1], file_id, argv[3], body.len);
 
   free(body.ptr);
   curl_slist_free_all(headers);
